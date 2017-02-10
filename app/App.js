@@ -16,16 +16,30 @@ export default class App extends Component {
         super(props);
     }
 
+    componentDidMount() {
+        console.log("Initting Audio Engine!");
+        RNEZAudio.initAudioEngine();
+    }
+
     testBridgeConnection = () => {
         console.log("JAvascript Button Log!");
         RNEZAudio.testBridgeConnection();
     };
 
+    startRecording = () => {
+        RNEZAudio.startRecording();
+    };
+
+    stopRecording = () => {
+        RNEZAudio.stopRecording();
+    }
+
     render() {
         return (
             <View style={styles.main}>
+                <Button label={"RECORD"} onPress={this.startRecording} />
                 <Button label={"PLAY"} onPress={this.testBridgeConnection} />
-                <Button label={"STOP"} />
+                <Button label={"STOP"} onPress={this.stopRecording} />
             </View>
         );
     }
