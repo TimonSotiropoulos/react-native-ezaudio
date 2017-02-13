@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import {
   StyleSheet,
   Text,
-  View
+  View,
+  NativeAppEventEmitter,
 } from 'react-native';
 
 import Button from './components/Button';
@@ -19,6 +20,21 @@ export default class App extends Component {
     componentDidMount() {
         console.log("Initting Audio Engine!");
         RNEZAudio.initAudioEngine();
+
+        this.volumeUpdateListener = NativeAppEventEmitter.addListener('VolumeUpdate', (data) => {
+            console.log("Volume update data received: " + data.volumeData);
+        });
+
+        this.FFTUpdateListener = NativeAppEventEmitter.addListener('FFTUpdate', (data) => {
+            console.log("FFT update data received:");
+            console.log(data.fftData[0]);
+            console.log(data.fftData[1]);
+            console.log(data.fftData[2]);
+        });
+    }
+
+    componentWillUnmount() {
+        this.volumeUpdateListener.remove();
     }
 
     testBridgeConnection = () => {
