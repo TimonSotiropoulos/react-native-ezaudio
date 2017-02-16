@@ -3,12 +3,11 @@ import {
   StyleSheet,
   Text,
   View,
+  NativeModules,
   NativeAppEventEmitter,
 } from 'react-native';
 
 import Button from './components/Button';
-
-import { NativeModules } from 'react-native';
 const RNEZAudio = NativeModules.RNEZAudio;
 
 
@@ -43,19 +42,29 @@ export default class App extends Component {
     };
 
     startRecording = () => {
-        RNEZAudio.startRecording();
+        RNEZAudio.startRecording('/', 'testfile.m4a');
     };
 
     stopRecording = () => {
         RNEZAudio.stopRecording();
     }
 
+    startPlayback = () => {
+        RNEZAudio.playbackFile(`/testfile.m4a`);
+    }
+
+    stopPlayback = () => {
+        RNEZAudio.stopPlayback();
+    }
+
     render() {
         return (
             <View style={styles.main}>
                 <Button label={"RECORD"} onPress={this.startRecording} />
-                <Button label={"PLAY"} onPress={this.testBridgeConnection} />
-                <Button label={"STOP"} onPress={this.stopRecording} />
+                <Button label={"END RECORDING"} onPress={this.stopRecording} />
+                <Button label={"PLAY"} onPress={this.startPlayback} />
+                <Button label={"STOP"} onPress={this.stopPlayback} />
+
             </View>
         );
     }

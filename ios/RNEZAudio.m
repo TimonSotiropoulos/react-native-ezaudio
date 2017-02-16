@@ -15,6 +15,7 @@
 @synthesize microphone = _microphone;
 @synthesize recorder = _recorder;
 @synthesize fft = _fft;
+@synthesize audioFile = _audioFile;
 @synthesize fftDataArray = _fftDataArray;
 
 RCT_EXPORT_MODULE();
@@ -84,16 +85,48 @@ RCT_EXPORT_METHOD(stopRecording) {
   
 }
 
+RCT_EXPORT_METHOD(playbackFile:(NSString *)filePath) {
+  
+  NSArray *documentFolders = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+  NSString *fullPath = [documentFolders[0] stringByAppendingPathComponent:filePath];
+  
+//  NSArray *paths = NSSearchPathForDirectoriesInDomains('/', NSUserDomainMask, YES);
+//  NSString *fullPath = [[paths firstObject] stringByAppendingString:filePath];
+  
+  _audioFile = [EZAudioFile audioFileWithURL:[NSURL URLWithString:fullPath]];
+  [_player playAudioFile:_audioFile];
+}
+
+RCT_EXPORT_METHOD(stopPlayback) {
+  [_player pause];
+}
+
+
+//------------------------------------------------------------------------------
+#pragma mark - Notifications
+//------------------------------------------------------------------------------
+
 - (void)setupNotifications
 {
+  
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(audioPlayerDidChangeAudioFile:)
+                                               name:EZAudioPlayerDidChangeAudioFileNotification
+                                             object:self.player];
   [[NSNotificationCenter defaultCenter] addObserver:self
                                            selector:@selector(playerDidChangePlayState:)
                                                name:EZAudioPlayerDidChangePlayStateNotification
                                              object:self.player];
   [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(playerDidReachEndOfFile:)
-                                               name:EZAudioPlayerDidReachEndOfFileNotification
+                                           selector:@selector(audioPlayerDidChangeOutputDevice:)
+                                               name:EZAudioPlayerDidChangeOutputDeviceNotification
                                              object:self.player];
+}
+
+- (void)audioPlayerDidChangeAudioFile:(NSNotification *)notification
+{
+  EZAudioPlayer *player = [notification object];
+  NSLog(@"Player changed audio file: %@", [player audioFile]);
 }
 
 - (void)playerDidChangePlayState:(NSNotification *)notification
@@ -101,6 +134,7 @@ RCT_EXPORT_METHOD(stopRecording) {
   __weak typeof (self) weakSelf = self;
   dispatch_async(dispatch_get_main_queue(), ^{
     EZAudioPlayer *player = [notification object];
+    NSLog(@"Player change play state, isPlaying: %i", [player isPlaying]);
     BOOL isPlaying = [player isPlaying];
     if (isPlaying)
     {
@@ -109,14 +143,10 @@ RCT_EXPORT_METHOD(stopRecording) {
   });
 }
 
-- (void)playerDidReachEndOfFile:(NSNotification *)notification
+- (void)audioPlayerDidChangeOutputDevice:(NSNotification *)notification
 {
-  __weak typeof (self) weakSelf = self;
-  dispatch_async(dispatch_get_main_queue(), ^{
-    
-    //[weakSelf.playingAudioPlot clear];
-    
-  });
+  EZAudioPlayer *player = [notification object];
+  NSLog(@"Player changed output device: %@", [player device]);
 }
 
 //------------------------------------------------------------------------------
@@ -161,6 +191,30 @@ RCT_EXPORT_METHOD(stopRecording) {
   [_recorder appendDataFromBufferList:bufferList
                        withBufferSize:bufferSize];
 }
+
+
+
+//------------------------------------------------------------------------------
+#pragma mark - EZAudioPlayerDelegate
+//------------------------------------------------------------------------------
+
+- (void)  audioPlayer:(EZAudioPlayer *)audioPlayer
+          playedAudio:(float **)buffer
+       withBufferSize:(UInt32)bufferSize
+ withNumberOfChannels:(UInt32)numberOfChannels
+          inAudioFile:(EZAudioFile *)audioFile
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    float decibelsNorm = [self getDecibelsFromVolume:buffer withBufferSize:bufferSize];
+    float roundVal = roundf(decibelsNorm * 100) / 100;
+    [_bridge.eventDispatcher sendAppEventWithName:@"VolumeUpdate" body:@{ @"volumeData": [NSNumber numberWithFloat:roundVal]}];
+    
+    // FFT Handler Function
+    [_fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
+  });
+}
+
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 #pragma mark - EZAudioFFTDelegate

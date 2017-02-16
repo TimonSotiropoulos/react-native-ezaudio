@@ -6,7 +6,7 @@ target 'blank' do
   # use_frameworks!
 
   # Pods for blank
-  pod 'EZAudio', '~> 1.1.4' 
+  pod 'EZAudio', '~> 1.1.4'
 
   target 'blankTests' do
     inherit! :search_paths

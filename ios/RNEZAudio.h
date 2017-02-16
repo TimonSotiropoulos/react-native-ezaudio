@@ -10,21 +10,21 @@
 #import "RCTEventDispatcher.h"
 #include <EZAudio/EZAudio.h>
 
-#define kAudioFilePath @"test.m4a"
-
-@interface RNEZAudio : NSObject <RCTBridgeModule, EZAudioPlayerDelegate, EZMicrophoneDelegate, EZRecorderDelegate, EZAudioFFTDelegate>
+@interface RNEZAudio : NSObject <RCTBridgeModule, EZAudioPlayerDelegate, EZMicrophoneDelegate, EZRecorderDelegate, EZAudioFFTDelegate, EZOutputDelegate>
 
 @property (nonatomic, strong) EZAudioPlayer *player;
 @property (nonatomic, strong) EZMicrophone *microphone;
 @property (nonatomic, strong) EZRecorder *recorder;
 @property (nonatomic, strong) EZAudioFFT *fft;
+@property (nonatomic, strong) EZAudioFile *audioFile;
 @property (nonatomic, strong) NSMutableArray *fftDataArray;
 
 
 - (void) testBridgeConnection;
 - (void) initAudioEngine;
-- (void) startRecording;
+- (void) startRecording:(NSString *)subDirectory: (NSString *)filename;
 - (void) stopRecording;
-
+- (void) playbackFile:(NSString *)filePath;
+- (void) stopPlayback;
 @end
 
