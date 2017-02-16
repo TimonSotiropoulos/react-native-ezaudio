@@ -44,8 +44,8 @@ RCT_EXPORT_METHOD(initAudioEngine) {
   _microphone = [EZMicrophone microphoneWithDelegate:self];
   _player = [EZAudioPlayer audioPlayerWithDelegate:self];
   _fft = [EZAudioFFTRolling fftWithWindowSize:6 // This is the buffer length before it will provide a new FFT sample :O
-              sampleRate:880 // This should be the MAX_FREQUENCY of the FFT sample :)
-              delegate:self];
+                                   sampleRate:880 // This should be the MAX_FREQUENCY of the FFT sample :)
+                                     delegate:self];
   
   _fftDataArray = [[NSMutableArray alloc] init];
   
@@ -57,17 +57,20 @@ RCT_EXPORT_METHOD(initAudioEngine) {
   
   [self setupNotifications];
   
-  NSLog(@"File written to application sandbox's documents directory: %@", [self testFilePathURL]);
-  
 }
 
-RCT_EXPORT_METHOD(startRecording) {
+//------------------------------------------------------------------------------
+#pragma mark - React Native Audio Controller Functions
+//------------------------------------------------------------------------------
+
+
+RCT_EXPORT_METHOD(startRecording:(NSString *)subDirectory: (NSString *)filename) {
   
   [_microphone startFetchingAudio];
-  _recorder = [EZRecorder recorderWithURL:[self testFilePathURL]
-                                 clientFormat:[_microphone audioStreamBasicDescription]
-                                     fileType:EZRecorderFileTypeM4A
-                                     delegate:self];
+  _recorder = [EZRecorder recorderWithURL:[self createFilePathURL:subDirectory filename:filename]
+                             clientFormat:[_microphone audioStreamBasicDescription]
+                                 fileType:EZRecorderFileTypeM4A
+                                 delegate:self];
   
 }
 
@@ -129,7 +132,7 @@ RCT_EXPORT_METHOD(stopRecording) {
        withBufferSize:(UInt32)bufferSize
  withNumberOfChannels:(UInt32)numberOfChannels
 {
-
+  
   dispatch_async(dispatch_get_main_queue(), ^{
     
     // Get the current volume size in decibles to do some fun stuff with!
@@ -139,7 +142,7 @@ RCT_EXPORT_METHOD(stopRecording) {
     
     // FFT Handler Function
     [_fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
- 
+    
   });
 }
 
@@ -156,7 +159,7 @@ RCT_EXPORT_METHOD(stopRecording) {
   // audio file.
   //
   [_recorder appendDataFromBufferList:bufferList
-                          withBufferSize:bufferSize];
+                       withBufferSize:bufferSize];
 }
 
 //------------------------------------------------------------------------------
@@ -217,24 +220,53 @@ RCT_EXPORT_METHOD(stopRecording) {
   return returnValRatioed;
 }
 
-- (NSArray *)applicationDocuments
-{
-  return NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+- (NSURL *)createFilePathURL:(NSString *)subDirectory filename:(NSString *)filename {
+  
+  NSLog(@"Starting");
+  NSLog(@"Sub Directory: %@", subDirectory );
+  NSLog(@"FileNAme: %@", filename );
+  
+  
+  NSFileManager *localFileManager = [NSFileManager defaultManager];
+  // Firstly we need to try and create the directory for to save the shout
+  NSArray *documentFolders = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+  NSString *documentSubDirectory = [documentFolders[0] stringByAppendingPathComponent:subDirectory];
+  
+  
+  
+  // Create the subdirectory structure
+  if (![localFileManager createDirectoryAtPath:documentSubDirectory withIntermediateDirectories:YES attributes:nil error:nil]) {
+    NSLog(@"Error Creating Directory");
+    return nil;
+  }
+  
+  NSString *filePath =[documentSubDirectory stringByAppendingPathComponent:filename];
+  
+  NSLog(@"FIle Path: %@", filePath);
+  
+  // Add the filename to the end of the cache subdirectory now that the file location has been created
+  return [NSURL fileURLWithPath:filePath];
+  
 }
 
-- (NSString *)applicationDocumentsDirectory
-{
-  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-  NSString *basePath = ([paths count] > 0) ? [paths objectAtIndex:0] : nil;
-  return basePath;
-}
-
-- (NSURL *)testFilePathURL
-{
-  return [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/%@",
-                                 [self applicationDocumentsDirectory],
-                                 kAudioFilePath]];
-}
+//- (NSArray *)applicationDocuments
+//{
+//  return NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+//}
+//
+//- (NSString *)applicationDocumentsDirectory
+//{
+//  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+//  NSString *basePath = ([paths count] > 0) ? [paths objectAtIndex:0] : nil;
+//  return basePath;
+//}
+//
+//- (NSURL *)testFilePathURL
+//{
+//  return [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/%@",
+//                                 [self applicationDocumentsDirectory],
+//                                 kAudioFilePath]];
+//}
 
 
 @end
